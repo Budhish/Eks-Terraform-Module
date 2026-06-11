@@ -1,0 +1,74 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+    }
+
+    environment {
+        AWS_DEFAULT_REGION = 'us-east-1'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                git branch: "${env.BRANCH_NAME}",
+                url: 'https://github.com/Budhish/EKS-Terraform-Module.git'
+            }
+        }
+
+        stage('Terraform Format Check') {
+            steps {
+                dir('environments/dev') {
+                    sh 'terraform fmt -check -recursive'
+                }
+            }
+        }
+
+        stage('Terraform Init') {
+            steps {
+                dir('environments/dev') {
+                    sh 'terraform init'
+                }
+            }
+        }
+
+        stage('Terraform Validate') {
+            steps {
+                dir('environments/dev') {
+                    sh 'terraform validate'
+                }
+            }
+        }
+
+        stage('Terraform Plan') {
+            steps {
+                dir('environments/dev') {
+                    sh '''
+                    terraform plan \
+                    -var-file=dev_terraform.tfvars \
+                    -out=tfplan
+                    '''
+
+                    sh 'terraform show -no-color tfplan > tfplan.txt'
+                }
+            }
+        }
+    }
+
+    post {
+
+        success {
+            echo 'Terraform Validation Successful'
+        }
+
+        failure {
+            echo 'Terraform Validation Failed'
+        }
+
+        always {
+            archiveArtifacts artifacts: 'environments/dev/tfplan.txt'
+        }
+    }
+}
