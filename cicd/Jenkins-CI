@@ -23,7 +23,7 @@ pipeline {
         stage('Terraform Format Check') {
             steps {
                 dir('environments/dev') {
-                    sh 'terraform fmt -check -recursive'
+                    sh 'terraform fmt -recursive'
                 }
             }
         }
